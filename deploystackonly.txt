@@ -1,0 +1,18 @@
+source config.txt && \
+aws cloudformation package \
+--template-file $PATH_TO_TEMPLATE \
+--s3-bucket $TEMPLATE_BUCKET \
+--output-template-file packaged-template.json && \
+aws cloudformation deploy \
+--template-file packaged-template.json \
+--stack-name $STACK_NAME \
+--capabilities CAPABILITY_NAMED_IAM \
+--parameter-overrides \
+ProjectName=$STACK_NAME  \
+FacebookAppId=$FACEBOOK_APP_ID \
+GoogleClientId=$GOOGLE_CLIENT_ID \
+TwitterConsumerKey=$TWITTER_CONSUMER_KEY \
+TwitterConsumerSecret=$TWITTER_CONSUMER_SECRET \
+AuthorizedLambdas=$AUTH_LAMBDA_ARNS \
+UnauthorizedLambdas=$UNAUTH_LAMBDA_ARNS && \
+aws cloudformation describe-stacks --stack-name $STACK_NAME

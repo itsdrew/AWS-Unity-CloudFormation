@@ -1,0 +1,253 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  IdentityPool:
+    Type: 'AWS::Cognito::IdentityPool'
+    Properties:
+      IdentityPoolName: !Join
+        - _
+        - - !Ref ProjectName
+          - pool
+      AllowUnauthenticatedIdentities: true
+      SupportedLoginProviders:
+        graph.facebook.com: !Ref FacebookAppId
+        accounts.google.com: !Ref GoogleClientId
+        api.twitter.com: !Join
+          - ';'
+          - - !Ref TwitterConsumerKey
+            - !Ref TwitterConsumerSecret
+  DevIdentityPool:
+    Type: 'AWS::Cognito::IdentityPool'
+    Properties:
+      IdentityPoolName: !Join
+        - _
+        - - !Ref ProjectName
+          - dev
+          - pool
+      AllowUnauthenticatedIdentities: true
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Join
+        - '-'
+        - - !Ref ProjectName
+          - bucket
+  DevRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Join
+        - _
+        - - !Ref ProjectName
+          - dev
+          - role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref DevIdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': unauthenticated
+      Policies:
+        - PolicyName: !Join
+            - _
+            - - !Ref ProjectName
+              - dev
+              - policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource:
+                  - !Join
+                    - /
+                    - - !GetAtt
+                        - S3Bucket
+                        - Arn
+                  - !Join
+                    - /
+                    - - !GetAtt
+                        - S3Bucket
+                        - Arn
+                      - '*'
+
+  AuthRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Join
+        - _
+        - - !Ref ProjectName
+          - auth
+          - role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref IdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': authenticated
+      Policies:
+        - PolicyName: !Join
+            - _
+            - - !Ref ProjectName
+              - auth
+              - policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'mobileanalytics:PutEvents'
+                  - 'cognito-sync:*'
+                  - 'cognito-identity:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource: !Ref AuthorizedLambdas
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                Resource:
+                  - !Join
+                    - /
+                    - - !GetAtt
+                        - S3Bucket
+                        - Arn
+                      - private
+                      - '*'
+                  - !Join
+                    - /
+                    - - !GetAtt
+                        - S3Bucket
+                        - Arn
+                      - public
+                      - '*'
+  UnauthRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Join
+        - _
+        - - !Ref ProjectName
+          - unauth
+          - role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref IdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': unauthenticated
+      Policies:
+        - PolicyName: !Join
+            - _
+            - - !Ref ProjectName
+              - unauth
+              - policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'mobileanalytics:PutEvents'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource: !Ref UnauthorizedLambdas
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                Resource:
+                  - !Join
+                    - /
+                    - - !GetAtt
+                        - S3Bucket
+                        - Arn
+                      - public
+                      - '*'
+  DevIdentityPoolRoleMapping:
+    Type: 'AWS::Cognito::IdentityPoolRoleAttachment'
+    Properties:
+      IdentityPoolId: !Ref DevIdentityPool
+      Roles:
+        authenticated: !GetAtt
+          - DevRole
+          - Arn
+        unauthenticated: !GetAtt
+          - DevRole
+          - Arn
+  IdentityPoolRoleMapping:
+    Type: 'AWS::Cognito::IdentityPoolRoleAttachment'
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt
+          - AuthRole
+          - Arn
+        unauthenticated: !GetAtt
+          - UnauthRole
+          - Arn
+Outputs:
+  DevIdentityPoolId:
+    Description: IdentityPoolId to put in DEV manager
+    Value: !Ref DevIdentityPool
+    Export:
+      Name: !Join
+        - '-'
+        - - !Ref ProjectName
+          - Dev
+          - 'IdentityPool::Id'
+  UserIdentityPoolId:
+    Description: IdentityPoolId to put in the auth manager
+    Value: !Ref IdentityPool
+    Export:
+      Name: !Join
+        - '-'
+        - - !Ref ProjectName
+          - User
+          - 'IdentityPool::Id'
+Parameters:
+  ProjectName:
+    Type: String
+    Description: All resources generated by this stack will contain this name
+  FacebookAppId:
+    Type: String
+    Description: 'Facebook app id. Ex: 12345678901234'
+  GoogleClientId:
+    Type: String
+    Description: 'Google client id. Ex: 123456789012.apps.googleusercontent.com'
+  TwitterConsumerKey:
+    Type: String
+    Description: 'Twitter consumer key.'
+  TwitterConsumerSecret:
+    Type: String
+    Description: 'Twitter consumer secret.'
+  AuthorizedLambdas:
+    Type: CommaDelimitedList
+    Description: >-
+      Comma delimited list of lambda arns that authorized client can use. Ex:
+      arn:...:function:FlushLeaderboards,arn:...:function:GetLeaderboard
+  UnauthorizedLambdas:
+    Type: CommaDelimitedList
+    Description: >-
+      Comma delimited list of lambda arns that unauthorized client can use. Ex:
+      arn:...:function:FlushLeaderboards,arn:...:function:GetLeaderboard

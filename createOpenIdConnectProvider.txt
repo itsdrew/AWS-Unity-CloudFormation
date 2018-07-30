@@ -1,0 +1,5 @@
+source config.txt && \
+aws iam create-open-id-connect-provider \
+--url $GOOGLE_PROVIDER_URL \
+--client-id-list $CLIENT_ID_1 $CLIENT_ID_2 $CLIENT_ID_3 \
+--thumbprint-list $THUMBPRINT

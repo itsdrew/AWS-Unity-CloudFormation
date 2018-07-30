@@ -1,0 +1,15 @@
+STACK_NAME=stackname
+PATH_TO_TEMPLATE=./UnityStackWithDev.yml
+TEMPLATE_BUCKET=bucket-of-templates
+FACEBOOK_APP_ID="123456789012345"
+GOOGLE_CLIENT_ID="123456789012-abcdefghijklmnopqrstuvwxyzabcdef.apps.googleusercontent.com"
+GOOGLE_PROVIDER_URL="https://accounts.google.com"
+CLIENT_ID_1="123456789012-abcdefghijklmnopqrstuvwxyzabcdef.apps.googleusercontent.com"
+CLIENT_ID_2="111111111111-abcdefghijklmnopqrstuvwxyzabcdef.apps.googleusercontent.com"
+CLIENT_ID_3="222222222222-abcdefghijklmnopqrstuvwxyzabcdef.apps.googleusercontent.com"
+THUMBPRINT=eeacbd0cb452819577911e1e6203db262f84a318
+THUMBPRINT=sdf98asdf98asdf098asdf0987aasdf098asdf09
+TWITTER_CONSUMER_KEY="asd09f87as0d9f87as0d98f7f"
+TWITTER_CONSUMER_SECRET="asd0f987asdf098asdf098asdf987asd0f987asd09f877asdf"
+AUTH_LAMBDA_ARNS=\"arn:aws:lambda:us-east-1:xxxxxxxxxxx:function:GetLeaderboard,arn:aws:lambda:us-east-1:xxxxxxxxxxxx:function:PostScoreToLeaderboard\"
+UNAUTH_LAMBDA_ARNS="arn:aws:lambda:us-east-1:xxxxxxxxxxxx:function:GetLeaderboard"
